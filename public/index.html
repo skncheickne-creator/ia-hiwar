@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Ḥiwār</title>
+<meta name="theme-color" content="#1F6F63">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icon.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600&family=Noto+Naskh+Arabic:wght@400;600&display=swap">
+<style>
+:root{
+  --bg:#F2F4F1; --surface:#FFFFFF; --ink:#1B2826; --muted:#5C6B67; --line:#D9DFDB;
+  --accent:#1F6F63; --accent-ink:#FFFFFF; --accent-soft:#E2EFEB; --rec:#B4432F; --danger:#A23B2A;
+  --ui:"Rubik",system-ui,sans-serif; --ar:"Noto Naskh Arabic","Amiri","Geeza Pro","Traditional Arabic",serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#111816; --surface:#18221F; --ink:#E6ECE9; --muted:#9AA9A4; --line:#2A3632;
+  --accent:#4FB3A2; --accent-ink:#0E1513; --accent-soft:#1D332E; --rec:#E07A66; --danger:#E07A66; color-scheme:dark}}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--ui);font-size:15px;line-height:1.5}
+.wrap{max-width:720px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;gap:16px;
+  padding:calc(16px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px))}
+header{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:10px}
+.brand h1{margin:0;font-size:22px;font-weight:600}
+.brand .ar{font-family:var(--ar);font-size:24px;color:var(--accent)}
+.known{font-size:13px;color:var(--muted)}
+h2{margin:0;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:500}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button:disabled{opacity:.5;cursor:default}
+.starters{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
+.starter{text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:2px}
+.starter:hover{border-color:var(--accent)}
+.starter .ar{font-family:var(--ar);font-size:18px;color:var(--accent);direction:rtl;text-align:right;line-height:1.7}
+.starter .fr{font-size:14px}
+.msgs{display:flex;flex-direction:column;gap:10px;flex:1}
+.msg{max-width:88%;padding:10px 14px;border-radius:14px;min-width:0}
+.msg.ai{align-self:flex-start;background:var(--surface);border:1px solid var(--line);border-bottom-left-radius:4px}
+.msg.me{align-self:flex-end;background:var(--accent-soft);border-bottom-right-radius:4px}
+.msg .who{font-size:12px;color:var(--muted);display:block;margin-bottom:2px}
+.msg .body{font-family:var(--ar);font-size:21px;line-height:2;white-space:pre-wrap;unicode-bidi:plaintext;text-align:start;overflow-wrap:anywhere}
+.msg .tools{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.mini{background:none;border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:13px}
+.err{align-self:center;color:var(--danger);font-size:14px;text-align:center;max-width:90%}
+.dock{position:sticky;bottom:0;background:var(--bg);display:flex;flex-direction:column;gap:10px;align-items:center;
+  padding:10px 0 calc(14px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line)}
+.quick{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+.chip{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:13px}
+.microw{display:flex;align-items:center;gap:14px}
+.mic{width:76px;height:76px;border-radius:50%;border:0;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.mic svg{width:32px;height:32px}
+.mic.rec{background:var(--rec)}
+@media (prefers-reduced-motion:no-preference){.mic.rec{animation:pulse 1.2s ease-in-out infinite}@keyframes pulse{50%{transform:scale(1.06)}}}
+.side{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:8px 12px;font-size:13px}
+.status{font-size:14px;color:var(--muted);min-height:21px;text-align:center}
+.typer{display:flex;gap:8px;width:100%}
+.typer textarea{flex:1;min-width:0;font-family:var(--ar);font-size:19px;line-height:1.7;border:1px solid var(--line);border-radius:10px;padding:8px 10px;background:var(--surface);color:var(--ink);resize:none}
+.primary{background:var(--accent);color:var(--accent-ink);border:0;border-radius:10px;padding:10px 16px;font-weight:500}
+.gate{margin:12vh auto 0;max-width:360px;display:flex;flex-direction:column;gap:12px;text-align:center}
+.gate input{font:inherit;font-size:18px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);text-align:center}
+.lang{display:flex;gap:4px;font-size:13px;color:var(--muted);align-items:center}
+.lang button{background:none;border:1px solid transparent;border-radius:999px;padding:2px 8px}
+.lang button[aria-pressed="true"]{border-color:var(--accent);color:var(--ink)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><h1>Ḥiwār</h1><span class="ar" lang="ar">حِوَار</span></div>
+    <button class="side" id="reset" hidden>Nouvelle conversation</button>
+  </header>
+
+  <form class="gate" id="gate" hidden>
+    <h2>Accès</h2>
+    <p>Entre le code d'accès donné par ton professeur.</p>
+    <input id="code" autocomplete="off" required aria-label="Code d'accès">
+    <button class="primary" type="submit">Entrer</button>
+    <p class="err" id="gateErr" hidden></p>
+  </form>
+
+  <main id="app" hidden style="display:flex;flex-direction:column;gap:16px;flex:1">
+    <p class="known" id="known">Chargement des textes…</p>
+    <div id="intro">
+      <h2 style="margin-bottom:8px">Pour commencer, touche une phrase ou parle</h2>
+      <div class="starters">
+        <button type="button" class="starter" data-mode="libre" data-say="أُرِيدُ أَنْ أَتَكَلَّمَ مَعَكَ بِٱلْعَرَبِيَّةِ."><span class="ar" lang="ar">أُرِيدُ أَنْ أَتَكَلَّمَ مَعَكَ بِٱلْعَرَبِيَّةِ</span><span class="fr">Je veux discuter en arabe avec toi</span></button>
+        <button type="button" class="starter" data-say="اِسْأَلْنِي أَسْئِلَةً عَنْ نَصٍّ."><span class="ar" lang="ar">اِسْأَلْنِي أَسْئِلَةً عَنْ نَصٍّ</span><span class="fr">Pose-moi des questions sur un texte</span></button>
+        <button type="button" class="starter" data-say="أُرِيدُ أَنْ أُرَاجِعَ كَلِمَاتِ ٱلنُّصُوصِ."><span class="ar" lang="ar">أُرِيدُ أَنْ أُرَاجِعَ كَلِمَاتِ ٱلنُّصُوصِ</span><span class="fr">Je veux réviser les mots des textes</span></button>
+        <button type="button" class="starter" data-say="اُحْكِ لِي قِصَّةً مِنَ ٱلنُّصُوصِ، ثُمَّ أَحْكِيهَا أَنَا."><span class="ar" lang="ar">اُحْكِ لِي قِصَّةً، ثُمَّ أَحْكِيهَا أَنَا</span><span class="fr">Raconte-moi une histoire, puis je la raconte à mon tour</span></button>
+      </div>
+    </div>
+    <div class="msgs" id="msgs" aria-live="polite"></div>
+
+    <div class="dock">
+      <div class="quick" id="quick" hidden>
+        <button type="button" class="chip" data-say="لَمْ أَفْهَمْ، أَعِدْ بِبُطْءٍ مِنْ فَضْلِكَ.">Je n'ai pas compris</button>
+        <button type="button" class="chip" data-say="Explique-moi ta dernière phrase en français, mot par mot.">Aide en français</button>
+        <button type="button" class="chip" data-say="أَعْطِنِي سُؤَالًا جَدِيدًا.">Nouvelle question</button>
+      </div>
+      <div class="status" id="status">Touche le micro, parle, puis touche-le encore pour envoyer.</div>
+      <div class="microw">
+        <div class="lang" role="group" aria-label="Langue parlée">
+          <button type="button" id="langAr" aria-pressed="true">arabe</button>
+          <button type="button" id="langFr" aria-pressed="false">français</button>
+        </div>
+        <button class="mic" id="mic" aria-label="Parler">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+        </button>
+        <button class="side" id="kbd" type="button">Écrire</button>
+      </div>
+      <form class="typer" id="typer" hidden>
+        <textarea id="box" rows="1" dir="auto" lang="ar" placeholder="اُكْتُبْ هُنَا…" aria-label="Écrire un message"></textarea>
+        <button class="primary" type="submit">Envoyer</button>
+      </form>
+    </div>
+  </main>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const store = { get(k){try{return localStorage.getItem(k)}catch{return null}}, set(k,v){try{localStorage.setItem(k,v)}catch{}}, del(k){try{localStorage.removeItem(k)}catch{}} };
+let code = store.get("hiwar-code") || "";
+let turns = [], mode = null, busy = false, lang = "ar";
+let recorder = null, chunks = [], recTimer = null;
+const player = new Audio();
+
+function el(tag, cls, txt){ const e=document.createElement(tag); if(cls)e.className=cls; if(txt!=null)e.textContent=txt; return e; }
+function setStatus(t){ $("status").textContent = t; }
+function showError(t){ const e=el("p","err",t); $("msgs").append(e); e.scrollIntoView({block:"end",behavior:"smooth"}); }
+
+async function api(path, opts={}){
+  const res = await fetch(path, { ...opts, headers: { ...(opts.headers||{}), "x-hiwar-code": code } });
+  if (res.status === 401) { store.del("hiwar-code"); code=""; showGate("Le code d'accès a changé. Entre le nouveau code."); throw new Error("401"); }
+  return res;
+}
+async function apiJson(path, opts){ const r = await api(path, opts); const d = await r.json().catch(()=>({})); if(!r.ok) throw new Error(d.error || "Erreur réseau. Réessaie."); return d; }
+
+/* --- accès --- */
+function showGate(msg){ $("app").hidden=true; $("gate").hidden=false; $("reset").hidden=true; $("gateErr").hidden=!msg; $("gateErr").textContent=msg||""; }
+$("gate").addEventListener("submit", async (e)=>{ e.preventDefault(); code=$("code").value.trim(); try{ await loadTexts(); store.set("hiwar-code",code); $("gate").hidden=true; $("app").hidden=false; }catch(err){ if(err.message!=="401") showGate(err.message); } });
+async function loadTexts(){
+  const d = await apiJson("/api/texts");
+  $("known").textContent = d.titles.length ? "Le professeur connaît : " + d.titles.join(" · ") : "Aucun texte n'a encore été ajouté.";
+}
+
+/* --- audio : déverrouillage pour iPhone (un son silencieux joué pendant le geste) --- */
+let unlocked=false;
+function silentWav(){ const n=800,b=new ArrayBuffer(44+n),v=new DataView(b),s=(o,t)=>{for(let i=0;i<t.length;i++)v.setUint8(o+i,t.charCodeAt(i))};
+  s(0,"RIFF");v.setUint32(4,36+n,true);s(8,"WAVEfmt ");v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,8000,true);v.setUint32(28,8000,true);v.setUint16(32,1,true);v.setUint16(34,8,true);s(36,"data");v.setUint32(40,n,true);for(let i=0;i<n;i++)v.setUint8(44+i,128);
+  return URL.createObjectURL(new Blob([b],{type:"audio/wav"})); }
+function unlockAudio(){ if(unlocked) return; unlocked=true; player.src=silentWav(); player.play().catch(()=>{}); }
+
+function play(url, slow){
+  player.src=url; player.playbackRate = slow ? 0.75 : 1; try{ player.preservesPitch = true; }catch{}
+  return player.play();
+}
+
+/* --- conversation --- */
+function addMsg(role, text){
+  const m=el("div","msg "+(role==="assistant"?"ai":"me"));
+  m.append(el("span","who", role==="assistant"?"Professeur":"Toi"));
+  const b=el("div","body",text); b.dir="auto"; m.append(b);
+  $("msgs").append(m); m.scrollIntoView({block:"end",behavior:"smooth"}); return m;
+}
+function started(on){ $("intro").hidden=on; $("quick").hidden=!on; $("reset").hidden=!on; }
+function lock(on){ busy=on; $("mic").disabled=on; document.querySelectorAll("[data-say]").forEach(b=>b.disabled=on); }
+
+async function send(text){
+  text=(text||"").trim(); if(!text || busy) return;
+  started(true); turns.push({role:"user",content:text}); addMsg("user",text);
+  lock(true); setStatus("Le professeur réfléchit…");
+  try{
+    const d = await apiJson("/api/chat",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({messages:turns.slice(-30),mode})});
+    turns.push({role:"assistant",content:d.text});
+    const m = addMsg("assistant", d.text);
+    await voice(m, d.text);
+  }catch(err){ if(err.message!=="401"){ turns.pop(); showError(err.message); } }
+  finally{ lock(false); setStatus("À toi : touche le micro pour répondre."); }
+}
+
+async function voice(m, text){
+  setStatus("Le professeur parle…");
+  const tools=el("div","tools"); m.append(tools);
+  try{
+    const r = await api("/api/speak",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({text})});
+    if(!r.ok){ const d=await r.json().catch(()=>({})); throw new Error(d.error||"Voix indisponible."); }
+    const url = URL.createObjectURL(await r.blob());
+    const again=el("button","mini","Réécouter"); again.type="button"; again.onclick=()=>{unlockAudio(); play(url,false)};
+    const slow=el("button","mini","Plus lentement"); slow.type="button"; slow.onclick=()=>{unlockAudio(); play(url,true)};
+    tools.append(again,slow);
+    await play(url,false).catch(()=>setStatus("Touche « Réécouter » pour entendre le professeur."));
+  }catch(err){ if(err.message!=="401") tools.append(el("span","known",err.message)); }
+}
+
+/* --- micro --- */
+function pickType(){ for(const t of ["audio/webm;codecs=opus","audio/webm","audio/mp4","audio/ogg"]) if(window.MediaRecorder && MediaRecorder.isTypeSupported(t)) return t; return ""; }
+async function startRec(){
+  if(!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder){ showError("Ton navigateur ne permet pas d'enregistrer. Utilise « Écrire » ou un autre navigateur (Chrome, Safari)."); return; }
+  let stream;
+  try{ stream = await navigator.mediaDevices.getUserMedia({audio:true}); }
+  catch{ showError("Le micro est bloqué. Autorise l'accès au micro dans les réglages du navigateur, puis réessaie."); return; }
+  const type=pickType(); chunks=[];
+  recorder = new MediaRecorder(stream, type?{mimeType:type}:undefined);
+  recorder.ondataavailable = (e)=>{ if(e.data.size) chunks.push(e.data); };
+  recorder.onstop = async ()=>{ stream.getTracks().forEach(t=>t.stop()); clearTimeout(recTimer); $("mic").classList.remove("rec"); $("mic").setAttribute("aria-label","Parler"); await transcribe(new Blob(chunks,{type:recorder.mimeType||type||"audio/webm"})); recorder=null; };
+  recorder.start(); $("mic").classList.add("rec"); $("mic").setAttribute("aria-label","Arrêter et envoyer");
+  setStatus(lang==="ar" ? "Je t'écoute… parle en arabe, puis touche le micro." : "Je t'écoute… parle en français, puis touche le micro.");
+  recTimer = setTimeout(()=>recorder && recorder.state==="recording" && recorder.stop(), 60000);
+}
+async function transcribe(blob){
+  if(blob.size < 1500){ setStatus("Je n'ai rien entendu. Touche le micro et parle un peu plus longtemps."); return; }
+  lock(true); setStatus("Je transcris ce que tu as dit…");
+  const ext = blob.type.includes("mp4") ? "m4a" : blob.type.includes("ogg") ? "ogg" : "webm";
+  const fd = new FormData(); fd.append("audio", blob, "voix."+ext); fd.append("language", lang);
+  try{
+    const d = await apiJson("/api/transcribe",{method:"POST",body:fd});
+    lock(false);
+    if(!d.text){ setStatus("Je n'ai pas compris. Réessaie en parlant plus près du téléphone."); return; }
+    await send(d.text);
+  }catch(err){ lock(false); if(err.message!=="401"){ showError(err.message); setStatus("Touche le micro pour réessayer."); } }
+}
+$("mic").addEventListener("click", ()=>{ unlockAudio(); player.pause(); if(recorder && recorder.state==="recording") recorder.stop(); else if(!busy) startRec(); });
+
+/* --- autres commandes --- */
+document.querySelectorAll("[data-say]").forEach(b=>b.addEventListener("click",()=>{ unlockAudio(); if(b.classList.contains("starter")) mode=b.dataset.mode||null; send(b.dataset.say); }));
+$("reset").onclick=()=>{ player.pause(); turns=[]; mode=null; $("msgs").replaceChildren(); started(false); setStatus("Touche le micro, parle, puis touche-le encore pour envoyer."); };
+$("kbd").onclick=()=>{ const t=$("typer"); t.hidden=!t.hidden; if(!t.hidden) $("box").focus(); };
+$("typer").addEventListener("submit",(e)=>{ e.preventDefault(); unlockAudio(); const v=$("box").value; $("box").value=""; send(v); });
+$("box").addEventListener("keydown",(e)=>{ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); $("typer").requestSubmit(); } });
+function setLang(l){ lang=l; $("langAr").setAttribute("aria-pressed",String(l==="ar")); $("langFr").setAttribute("aria-pressed",String(l==="fr")); }
+$("langAr").onclick=()=>setLang("ar"); $("langFr").onclick=()=>setLang("fr");
+
+/* --- démarrage --- */
+if(!code) showGate(); else { $("app").hidden=false; loadTexts().catch(err=>{ if(err.message!=="401") $("known").textContent=err.message; }); }
+</script>
+</body>
+</html>
