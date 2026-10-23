@@ -18,18 +18,16 @@ Les clés API restent sur le serveur Cloudflare : elles ne sont jamais dans le c
 
 Les fichiers dont le nom commence par `_` sont ignorés.
 
-## Mise en ligne sur Cloudflare (une seule fois)
+## Mise en ligne sur Cloudflare (Workers)
 
-1. Tableau de bord Cloudflare → **Workers & Pages** → **Create** → onglet **Pages** → **Connect to Git** → choisissez `ia-hiwar`.
-2. Réglages de build :
-   - Framework preset : **None**
-   - Build command : `node scripts/build-texts.mjs`
-   - Build output directory : `public`
-3. **Environment variables** (choisissez le type *Secret* / *Encrypt* pour les clés) :
+Le projet est un Worker Cloudflare (`wrangler.jsonc`) relié à ce dépôt : chaque modification sur GitHub le remet en ligne automatiquement.
+
+1. **Workers & Pages** → `ia-hiwar` → **Paramètres** → **Variables et secrets** → ajoutez, en type **Secret** :
    - `ANTHROPIC_API_KEY` : votre clé Claude
    - `OPENAI_API_KEY` : votre clé OpenAI
-   - `APP_CODE` : le code d'accès que vous donnerez à vos testeurs
-4. **Save and Deploy**. L'adresse de l'app s'affiche à la fin (du type `ia-hiwar.pages.dev`).
+   - `APP_CODE` : le code d'accès donné aux testeurs
+2. **Paramètres** → **Domaines et routes** : activez l'adresse **workers.dev**.
+3. L'adresse de l'app est du type `ia-hiwar.<votre-compte>.workers.dev`.
 
 ### Réglages facultatifs
 
@@ -40,4 +38,4 @@ Les fichiers dont le nom commence par `_` sont ignorés.
 | `TTS_MODEL` | `gpt-4o-mini-tts` | Modèle qui parle |
 | `TTS_VOICE` | `ash` | Voix du professeur (ex. `alloy`, `coral`, `onyx`) |
 
-Après un changement de variable, relancez un déploiement (**Deployments → Retry deployment**).
+Ces réglages facultatifs s'ajoutent au même endroit que les clés.

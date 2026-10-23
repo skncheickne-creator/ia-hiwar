@@ -1,0 +1,14 @@
+{
+  // Configuration Cloudflare Workers de Ḥiwār.
+  "name": "ia-hiwar",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-09-01",
+  "workers_dev": true,
+  // Avant chaque mise en ligne : rassemble les fichiers du dossier « textes ».
+  "build": { "command": "node scripts/build-texts.mjs" },
+  // La page de l'élève (dossier public).
+  "assets": { "directory": "./public", "binding": "ASSETS" },
+  // Garde les variables réglées dans le tableau de bord Cloudflare.
+  "keep_vars": true,
+  "observability": { "enabled": true }
+}
