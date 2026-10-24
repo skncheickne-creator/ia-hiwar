@@ -26,6 +26,9 @@ export async function onRequestPost({ request, env }) {
   if (!messages.length || messages[messages.length - 1].role !== "user") return json({ error: "Le dernier message doit venir de l'élève." }, 400);
 
   const mode = MODES[body.mode] ? "\n\n" + MODES[body.mode] : "";
+  const model = env.CLAUDE_MODEL || "claude-haiku-5-5";
+  // Réponse orale rapide : pas de longue réflexion avant de répondre.
+  const thinking = /haiku/.test(model) ? { type: "disabled" } : /sonnet-5-5/.test(model) ? { type: "between_tools" } : undefined;
 
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -35,8 +38,10 @@ export async function onRequestPost({ request, env }) {
       "content-type": "application/json",
     },
     body: JSON.stringify({
-      model: env.CLAUDE_MODEL || "claude-haiku-5-5",
-      max_tokens: 500,
+      model,
+      max_tokens: 2000,
+      output_config: { effort: "low" },
+      ...(thinking ? { thinking } : {}),
       // Les règles et les textes sont mis en cache : ils coûtent beaucoup moins cher à partir du 2e message.
       system: [
         { type: "text", text: RULES + "\n\n" + knowledge(), cache_control: { type: "ephemeral" } },
@@ -57,5 +62,9 @@ export async function onRequestPost({ request, env }) {
 
   const data = await res.json();
   const text = (data.content || []).filter((b) => b.type === "text").map((b) => b.text).join("").trim();
+  if (!text) {
+    console.log("Réponse vide de Claude", data.stop_reason, JSON.stringify(data.usage));
+    return json({ error: "Le professeur n'a pas su répondre cette fois. Renvoie ton message." }, 502);
+  }
   return json({ text });
 }

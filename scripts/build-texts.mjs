@@ -14,7 +14,8 @@ const files = existsSync(dir)
 const texts = files.map((f) => {
   const body = readFileSync(join(dir, f), "utf8").replace(/^﻿/, "").replace(/\r/g, "").trim();
   const heading = body.match(/^#\s+(.+)$/m);
-  const title = (heading ? heading[1] : basename(f, extname(f)).replace(/[_-]+/g, " ")).trim();
+  const title = (heading ? heading[1] : basename(f, extname(f)).replace(/[_-]+/g, " "))
+    .replace(/[*_`]+/g, "").replace(/\s+/g, " ").trim();
   return { title, body };
 });
 

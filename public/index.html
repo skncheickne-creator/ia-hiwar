@@ -179,6 +179,7 @@ async function send(text){
   lock(true); setStatus("Le professeur réfléchit…");
   try{
     const d = await apiJson("/api/chat",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({messages:turns.slice(-30),mode})});
+    if(!d.text) throw new Error("Le professeur n'a pas su répondre cette fois. Renvoie ton message.");
     turns.push({role:"assistant",content:d.text});
     const m = addMsg("assistant", d.text);
     await voice(m, d.text);
