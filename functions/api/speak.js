@@ -1,6 +1,15 @@
 // La bouche : lit la réponse du professeur à voix haute (OpenAI).
 import { checkCode, json } from "../../lib/auth.js";
 
+// Voix proposées dans l'app (le reste est refusé).
+const VOICES = ["cedar", "marin", "ash", "onyx", "verse", "coral", "sage", "shimmer"];
+
+const STYLE =
+  "Tu es un professeur d'arabe chaleureux qui discute avec un élève, comme une vraie personne et non comme un robot. " +
+  "Parle avec un débit naturel de conversation, ni lent ni pressé, avec une intonation vivante, des pauses naturelles et un ton souriant et encourageant. " +
+  "Lis l'arabe en arabe classique (fuṣḥā) en prononçant toutes les voyelles et toutes les lettres correctement. " +
+  "Lis les passages en français avec une prononciation française naturelle.";
+
 export async function onRequestPost({ request, env }) {
   const denied = checkCode(request, env);
   if (denied) return denied;
@@ -16,10 +25,9 @@ export async function onRequestPost({ request, env }) {
     headers: { authorization: `Bearer ${env.OPENAI_API_KEY}`, "content-type": "application/json" },
     body: JSON.stringify({
       model: env.TTS_MODEL || "gpt-4o-mini-tts",
-      voice: env.TTS_VOICE || "ash",
+      voice: VOICES.includes(body.voice) ? body.voice : env.TTS_VOICE || "cedar",
       input: text,
-      instructions:
-        "Tu es un professeur d'arabe qui parle à un débutant. Lis l'arabe en arabe classique (fuṣḥā), lentement et clairement, en prononçant toutes les voyelles. Lis les passages en français avec une prononciation française naturelle.",
+      instructions: STYLE,
       response_format: "mp3",
     }),
   });

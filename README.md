@@ -36,6 +36,6 @@ Le projet est un Worker Cloudflare (`wrangler.jsonc`) relié à ce dépôt : cha
 | `CLAUDE_MODEL` | `claude-haiku-5-5` | Mettre `claude-sonnet-5-5` pour un professeur plus fin (plus cher) |
 | `TRANSCRIBE_MODEL` | `gpt-4o-mini-transcribe` | Modèle qui écoute l'élève |
 | `TTS_MODEL` | `gpt-4o-mini-tts` | Modèle qui parle |
-| `TTS_VOICE` | `ash` | Voix du professeur (ex. `alloy`, `coral`, `onyx`) |
+| `TTS_VOICE` | `cedar` | Voix par défaut (l’élève choisit sa voix dans l’app, bouton « Voix ») |
 
 Ces réglages facultatifs s'ajoutent au même endroit que les clés.

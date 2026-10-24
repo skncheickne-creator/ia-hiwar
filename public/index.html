@@ -68,6 +68,17 @@ button:disabled{opacity:.5;cursor:default}
 .lang{display:flex;gap:4px;font-size:13px;color:var(--muted);align-items:center}
 .lang button{background:none;border:1px solid transparent;border-radius:999px;padding:2px 8px}
 .lang button[aria-pressed="true"]{border-color:var(--accent);color:var(--ink)}
+.settings{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:12px}
+.settings h2{margin-bottom:2px}
+.voices{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.voice{text-align:left;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column}
+.voice[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.voice .n{font-weight:500}
+.voice .d{font-size:12px;color:var(--muted)}
+.speeds{display:flex;gap:6px;flex-wrap:wrap}
+.speeds button{background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:5px 12px;font-size:13px}
+.speeds button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.hdr-btns{display:flex;gap:8px}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -75,8 +86,23 @@ button:disabled{opacity:.5;cursor:default}
 <div class="wrap">
   <header>
     <div class="brand"><h1>Ḥiwār</h1><span class="ar" lang="ar">حِوَار</span></div>
-    <button class="side" id="reset" hidden>Nouvelle conversation</button>
+    <div class="hdr-btns">
+      <button class="side" id="reset" hidden>Nouvelle conversation</button>
+      <button class="side" id="openSettings" hidden aria-expanded="false" aria-controls="settings">Voix</button>
+    </div>
   </header>
+
+  <section class="settings" id="settings" hidden aria-label="Réglages de la voix">
+    <div><h2>Voix du professeur</h2></div>
+    <div class="voices" id="voices"></div>
+    <div><h2>Vitesse de parole</h2></div>
+    <div class="speeds" id="speeds"></div>
+    <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <button class="primary" type="button" id="sample">Écouter un exemple</button>
+      <button class="side" type="button" id="closeSettings">Fermer</button>
+      <span class="known" id="sampleMsg"></span>
+    </div>
+  </section>
 
   <form class="gate" id="gate" hidden>
     <h2>Accès</h2>
@@ -128,6 +154,30 @@ button:disabled{opacity:.5;cursor:default}
 const $ = (id) => document.getElementById(id);
 const store = { get(k){try{return localStorage.getItem(k)}catch{return null}}, set(k,v){try{localStorage.setItem(k,v)}catch{}}, del(k){try{localStorage.removeItem(k)}catch{}} };
 let code = store.get("hiwar-code") || "";
+const VOICES=[
+  {id:"cedar",n:"Homme",d:"naturel · recommandé",g:"m"},
+  {id:"marin",n:"Femme",d:"naturelle · recommandée",g:"f"},
+  {id:"ash",n:"Homme",d:"posé",g:"m"},
+  {id:"onyx",n:"Homme",d:"voix grave",g:"m"},
+  {id:"verse",n:"Homme",d:"expressif",g:"m"},
+  {id:"coral",n:"Femme",d:"chaleureuse",g:"f"},
+  {id:"sage",n:"Femme",d:"douce",g:"f"},
+  {id:"shimmer",n:"Femme",d:"claire",g:"f"}
+];
+const SPEEDS=[{v:0.9,l:"Lente"},{v:1,l:"Normale"},{v:1.15,l:"Rapide"},{v:1.3,l:"Très rapide"}];
+let voice = VOICES.some(x=>x.id===store.get("hiwar-voice")) ? store.get("hiwar-voice") : "cedar";
+let speed = SPEEDS.some(x=>String(x.v)===store.get("hiwar-speed")) ? Number(store.get("hiwar-speed")) : 1.15;
+const teacherGender = ()=> (VOICES.find(x=>x.id===voice)||VOICES[0]).g;
+function renderSettings(){
+  const vb=$("voices"); vb.replaceChildren();
+  for(const v of VOICES){ const b=el("button","voice"); b.type="button"; b.setAttribute("aria-pressed",String(v.id===voice));
+    b.append(el("span","n",v.n),el("span","d",v.d)); b.onclick=()=>{ voice=v.id; store.set("hiwar-voice",voice); renderSettings(); }; vb.append(b); }
+  const sb=$("speeds"); sb.replaceChildren();
+  for(const x of SPEEDS){ const b=el("button",null,x.l); b.type="button"; b.setAttribute("aria-pressed",String(x.v===speed));
+    b.onclick=()=>{ speed=x.v; store.set("hiwar-speed",String(speed)); player.playbackRate=speed; renderSettings(); }; sb.append(b); }
+}
+function toggleSettings(open){ $("settings").hidden=!open; $("openSettings").setAttribute("aria-expanded",String(open)); }
+
 let turns = [], mode = null, busy = false, lang = "ar";
 let recorder = null, chunks = [], recTimer = null;
 const player = new Audio();
@@ -144,8 +194,8 @@ async function api(path, opts={}){
 async function apiJson(path, opts){ const r = await api(path, opts); const d = await r.json().catch(()=>({})); if(!r.ok) throw new Error(d.error || "Erreur réseau. Réessaie."); return d; }
 
 /* --- accès --- */
-function showGate(msg){ $("app").hidden=true; $("gate").hidden=false; $("reset").hidden=true; $("gateErr").hidden=!msg; $("gateErr").textContent=msg||""; }
-$("gate").addEventListener("submit", async (e)=>{ e.preventDefault(); code=$("code").value.trim(); try{ await loadTexts(); store.set("hiwar-code",code); $("gate").hidden=true; $("app").hidden=false; }catch(err){ if(err.message!=="401") showGate(err.message); } });
+function showGate(msg){ $("openSettings").hidden=true; toggleSettings(false); $("app").hidden=true; $("gate").hidden=false; $("reset").hidden=true; $("gateErr").hidden=!msg; $("gateErr").textContent=msg||""; }
+$("gate").addEventListener("submit", async (e)=>{ e.preventDefault(); code=$("code").value.trim(); try{ await loadTexts(); store.set("hiwar-code",code); $("gate").hidden=true; $("app").hidden=false; $("openSettings").hidden=false; }catch(err){ if(err.message!=="401") showGate(err.message); } });
 async function loadTexts(){
   const d = await apiJson("/api/texts");
   $("known").textContent = d.titles.length ? "Le professeur connaît : " + d.titles.join(" · ") : "Aucun texte n'a encore été ajouté.";
@@ -159,7 +209,8 @@ function silentWav(){ const n=800,b=new ArrayBuffer(44+n),v=new DataView(b),s=(o
 function unlockAudio(){ if(unlocked) return; unlocked=true; player.src=silentWav(); player.play().catch(()=>{}); }
 
 function play(url, slow){
-  player.src=url; player.playbackRate = slow ? 0.75 : 1; try{ player.preservesPitch = true; }catch{}
+  player.src=url; try{ player.preservesPitch = true; }catch{}
+  player.defaultPlaybackRate = player.playbackRate = slow ? 0.75 : speed;
   return player.play();
 }
 
@@ -178,20 +229,20 @@ async function send(text){
   started(true); turns.push({role:"user",content:text}); addMsg("user",text);
   lock(true); setStatus("Le professeur réfléchit…");
   try{
-    const d = await apiJson("/api/chat",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({messages:turns.slice(-30),mode})});
+    const d = await apiJson("/api/chat",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({messages:turns.slice(-30),mode,teacher:teacherGender()})});
     if(!d.text) throw new Error("Le professeur n'a pas su répondre cette fois. Renvoie ton message.");
     turns.push({role:"assistant",content:d.text});
     const m = addMsg("assistant", d.text);
-    await voice(m, d.text);
+    await speakReply(m, d.text);
   }catch(err){ if(err.message!=="401"){ turns.pop(); showError(err.message); } }
   finally{ lock(false); setStatus("À toi : touche le micro pour répondre."); }
 }
 
-async function voice(m, text){
+async function speakReply(m, text){
   setStatus("Le professeur parle…");
   const tools=el("div","tools"); m.append(tools);
   try{
-    const r = await api("/api/speak",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({text})});
+    const r = await api("/api/speak",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({text,voice})});
     if(!r.ok){ const d=await r.json().catch(()=>({})); throw new Error(d.error||"Voix indisponible."); }
     const url = URL.createObjectURL(await r.blob());
     const again=el("button","mini","Réécouter"); again.type="button"; again.onclick=()=>{unlockAudio(); play(url,false)};
@@ -240,7 +291,20 @@ function setLang(l){ lang=l; $("langAr").setAttribute("aria-pressed",String(l===
 $("langAr").onclick=()=>setLang("ar"); $("langFr").onclick=()=>setLang("fr");
 
 /* --- démarrage --- */
-if(!code) showGate(); else { $("app").hidden=false; loadTexts().catch(err=>{ if(err.message!=="401") $("known").textContent=err.message; }); }
+renderSettings();
+$("openSettings").onclick=()=>toggleSettings($("settings").hidden);
+$("closeSettings").onclick=()=>toggleSettings(false);
+$("sample").onclick=async()=>{
+  unlockAudio(); const btn=$("sample"); btn.disabled=true; $("sampleMsg").textContent="Préparation…";
+  const g=teacherGender();
+  const text = g==="f" ? "السَّلَامُ عَلَيْكُمْ، أَنَا مُعَلِّمَتُكَ. كَيْفَ حَالُكَ ٱلْيَوْمَ؟" : "السَّلَامُ عَلَيْكُمْ، أَنَا مُعَلِّمُكَ. كَيْفَ حَالُكَ ٱلْيَوْمَ؟";
+  try{ const r=await api("/api/speak",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({text,voice})});
+    if(!r.ok){ const d=await r.json().catch(()=>({})); throw new Error(d.error||"Voix indisponible."); }
+    await play(URL.createObjectURL(await r.blob()),false); $("sampleMsg").textContent="";
+  }catch(err){ if(err.message!=="401") $("sampleMsg").textContent=err.message; }
+  finally{ btn.disabled=false; }
+};
+if(!code) showGate(); else { $("app").hidden=false; $("openSettings").hidden=false; loadTexts().catch(err=>{ if(err.message!=="401") $("known").textContent=err.message; }); }
 </script>
 </body>
 </html>

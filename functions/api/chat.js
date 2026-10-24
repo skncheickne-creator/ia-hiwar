@@ -25,7 +25,8 @@ export async function onRequestPost({ request, env }) {
   while (messages.length && messages[0].role !== "user") messages.shift();
   if (!messages.length || messages[messages.length - 1].role !== "user") return json({ error: "Le dernier message doit venir de l'élève." }, 400);
 
-  const mode = MODES[body.mode] ? "\n\n" + MODES[body.mode] : "";
+  const mode = (MODES[body.mode] ? "\n\n" + MODES[body.mode] : "") +
+    (body.teacher === "f" ? "\n\nTu es une professeure (femme) : quand tu parles de toi en arabe, utilise le féminin (مُعَلِّمَتُكَ، أَنَا سَعِيدَةٌ…)." : "");
   const model = env.CLAUDE_MODEL || "claude-haiku-5-5";
   // Réponse orale rapide : pas de longue réflexion avant de répondre.
   const thinking = /haiku/.test(model) ? { type: "disabled" } : /sonnet-5-5/.test(model) ? { type: "between_tools" } : undefined;
