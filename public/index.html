@@ -58,6 +58,7 @@ button:disabled{opacity:.5;cursor:default}
 .mic svg{width:32px;height:32px}
 .mic.rec{background:var(--rec)}
 @media (prefers-reduced-motion:no-preference){.mic.rec{animation:pulse 1.2s ease-in-out infinite}@keyframes pulse{50%{transform:scale(1.06)}}}
+.side[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
 .side{background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:8px 12px;font-size:13px}
 .status{font-size:14px;color:var(--muted);min-height:21px;text-align:center}
 .typer{display:flex;gap:8px;width:100%}
@@ -140,7 +141,10 @@ button:disabled{opacity:.5;cursor:default}
         <button class="mic" id="mic" aria-label="Parler">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
         </button>
-        <button class="side" id="kbd" type="button">Écrire</button>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <button class="side" id="hf" type="button" aria-pressed="true">Mains libres : oui</button>
+          <button class="side" id="kbd" type="button">Écrire</button>
+        </div>
       </div>
       <form class="typer" id="typer" hidden>
         <textarea id="box" rows="1" dir="auto" lang="ar" placeholder="اُكْتُبْ هُنَا…" aria-label="Écrire un message"></textarea>
@@ -179,7 +183,8 @@ function renderSettings(){
 function toggleSettings(open){ $("settings").hidden=!open; $("openSettings").setAttribute("aria-expanded",String(open)); }
 
 let turns = [], mode = null, busy = false, lang = "ar";
-let recorder = null, chunks = [], recTimer = null;
+let recorder = null, chunks = [], recTimer = null, vadTimer = null, sendAfter = true, actx = null;
+let handsFree = store.get("hiwar-hf") !== "0";
 const player = new Audio();
 
 function el(tag, cls, txt){ const e=document.createElement(tag); if(cls)e.className=cls; if(txt!=null)e.textContent=txt; return e; }
@@ -224,48 +229,99 @@ function addMsg(role, text){
 function started(on){ $("intro").hidden=on; $("quick").hidden=!on; $("reset").hidden=!on; }
 function lock(on){ busy=on; $("mic").disabled=on; document.querySelectorAll("[data-say]").forEach(b=>b.disabled=on); }
 
+function idleStatus(){ setStatus(handsFree ? "Touche le micro et parle : j'envoie dès que tu te tais." : "À toi : touche le micro pour répondre."); }
+function ensureCtx(){ try{ actx = actx || new (window.AudioContext||window.webkitAudioContext)(); if(actx.state==="suspended") actx.resume(); }catch{ actx=null; } }
+
 async function send(text){
   text=(text||"").trim(); if(!text || busy) return;
   started(true); turns.push({role:"user",content:text}); addMsg("user",text);
   lock(true); setStatus("Le professeur réfléchit…");
+  let listenNext=false;
   try{
     const d = await apiJson("/api/chat",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({messages:turns.slice(-30),mode,teacher:teacherGender()})});
     if(!d.text) throw new Error("Le professeur n'a pas su répondre cette fois. Renvoie ton message.");
     turns.push({role:"assistant",content:d.text});
     const m = addMsg("assistant", d.text);
-    await speakReply(m, d.text);
+    listenNext = await speakReply(m, d.text);
   }catch(err){ if(err.message!=="401"){ turns.pop(); showError(err.message); } }
-  finally{ lock(false); setStatus("À toi : touche le micro pour répondre."); }
+  finally{
+    lock(false);
+    if(handsFree && listenNext && !$("app").hidden) startRec(true); else idleStatus();
+  }
 }
 
+// Joue un son et attend la fin. Renvoie true s'il a été écouté jusqu'au bout.
+function playToEnd(url){
+  return new Promise((resolve)=>{
+    const done=(ok)=>{ player.onended=player.onpause=player.onerror=null; resolve(ok); };
+    player.onended=()=>done(true); player.onerror=()=>done(false);
+    play(url,false).then(()=>{ player.onpause=()=>{ if(!player.ended) done(false); }; }).catch(()=>done(false));
+  });
+}
+
+// Lit la réponse (l'arabe seulement). Renvoie true si on peut rouvrir le micro ensuite.
 async function speakReply(m, text){
   setStatus("Le professeur parle…");
   const tools=el("div","tools"); m.append(tools);
   try{
     const r = await api("/api/speak",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({text,voice})});
+    if(r.status===204) return true; // pas d'arabe à lire
     if(!r.ok){ const d=await r.json().catch(()=>({})); throw new Error(d.error||"Voix indisponible."); }
     const url = URL.createObjectURL(await r.blob());
-    const again=el("button","mini","Réécouter"); again.type="button"; again.onclick=()=>{unlockAudio(); play(url,false)};
-    const slow=el("button","mini","Plus lentement"); slow.type="button"; slow.onclick=()=>{unlockAudio(); play(url,true)};
+    const again=el("button","mini","Réécouter"); again.type="button"; again.onclick=()=>{unlockAudio(); stopRec(false); play(url,false)};
+    const slow=el("button","mini","Plus lentement"); slow.type="button"; slow.onclick=()=>{unlockAudio(); stopRec(false); play(url,true)};
     tools.append(again,slow);
-    await play(url,false).catch(()=>setStatus("Touche « Réécouter » pour entendre le professeur."));
-  }catch(err){ if(err.message!=="401") tools.append(el("span","known",err.message)); }
+    const ok = await playToEnd(url);
+    if(!ok && player.paused && !recorder) setStatus("Touche « Réécouter » pour entendre le professeur.");
+    return ok;
+  }catch(err){ if(err.message!=="401") tools.append(el("span","known",err.message)); return false; }
 }
 
 /* --- micro --- */
 function pickType(){ for(const t of ["audio/webm;codecs=opus","audio/webm","audio/mp4","audio/ogg"]) if(window.MediaRecorder && MediaRecorder.isTypeSupported(t)) return t; return ""; }
-async function startRec(){
-  if(!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder){ showError("Ton navigateur ne permet pas d'enregistrer. Utilise « Écrire » ou un autre navigateur (Chrome, Safari)."); return; }
+function stopRec(send){ if(recorder && recorder.state==="recording"){ sendAfter=send; recorder.stop(); } }
+
+// Écoute la voix : dès que l'élève a parlé puis se tait 1,3 s, on envoie (mode mains libres).
+function watchSilence(stream){
+  if(!actx) return null;
+  let src; try{ src=actx.createMediaStreamSource(stream); }catch{ return null; }
+  const an=actx.createAnalyser(); an.fftSize=1024; src.connect(an);
+  const buf=new Float32Array(an.fftSize), t0=performance.now();
+  let noise=0, n=0, loud=0, last=0, heard=false;
+  vadTimer=setInterval(()=>{
+    an.getFloatTimeDomainData(buf); let sum=0; for(let i=0;i<buf.length;i++) sum+=buf[i]*buf[i];
+    const rms=Math.sqrt(sum/buf.length), now=performance.now();
+    if(now-t0<300){ noise+=rms; n++; return; }
+    const thr=Math.max(0.012,(noise/(n||1))*3);
+    if(rms>thr){ loud+=50; last=now; if(!heard && loud>=200){ heard=true; setStatus("Je t'écoute… j'envoie quand tu te tais."); } }
+    if(heard && now-last>1300) stopRec(true);
+    else if(!heard && now-t0>9000) stopRec(false);
+  },50);
+  return ()=>{ clearInterval(vadTimer); vadTimer=null; try{ src.disconnect(); }catch{} };
+}
+
+async function startRec(auto){
+  if(recorder || busy) return;
+  if(!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder){ if(!auto) showError("Ton navigateur ne permet pas d'enregistrer. Utilise « Écrire » ou un autre navigateur (Chrome, Safari)."); else idleStatus(); return; }
   let stream;
-  try{ stream = await navigator.mediaDevices.getUserMedia({audio:true}); }
-  catch{ showError("Le micro est bloqué. Autorise l'accès au micro dans les réglages du navigateur, puis réessaie."); return; }
-  const type=pickType(); chunks=[];
+  try{ stream = await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}}); }
+  catch{ if(auto){ setStatus("Touche le micro pour répondre."); } else showError("Le micro est bloqué. Autorise l'accès au micro dans les réglages du navigateur, puis réessaie."); return; }
+  const type=pickType(); chunks=[]; sendAfter=true;
   recorder = new MediaRecorder(stream, type?{mimeType:type}:undefined);
+  const unwatch = handsFree ? watchSilence(stream) : null;
   recorder.ondataavailable = (e)=>{ if(e.data.size) chunks.push(e.data); };
-  recorder.onstop = async ()=>{ stream.getTracks().forEach(t=>t.stop()); clearTimeout(recTimer); $("mic").classList.remove("rec"); $("mic").setAttribute("aria-label","Parler"); await transcribe(new Blob(chunks,{type:recorder.mimeType||type||"audio/webm"})); recorder=null; };
+  recorder.onstop = async ()=>{
+    if(unwatch) unwatch();
+    stream.getTracks().forEach(t=>t.stop()); clearTimeout(recTimer);
+    $("mic").classList.remove("rec"); $("mic").setAttribute("aria-label","Parler");
+    const blob=new Blob(chunks,{type:recorder.mimeType||type||"audio/webm"}); recorder=null;
+    if(!sendAfter){ setStatus(handsFree ? "Je ne t'entends pas. Touche le micro quand tu veux répondre." : "Touche le micro pour parler."); return; }
+    await transcribe(blob);
+  };
   recorder.start(); $("mic").classList.add("rec"); $("mic").setAttribute("aria-label","Arrêter et envoyer");
-  setStatus(lang==="ar" ? "Je t'écoute… parle en arabe, puis touche le micro." : "Je t'écoute… parle en français, puis touche le micro.");
-  recTimer = setTimeout(()=>recorder && recorder.state==="recording" && recorder.stop(), 60000);
+  const l = lang==="ar" ? "en arabe" : "en français";
+  setStatus(unwatch ? `Je t'écoute… parle ${l}. J'envoie dès que tu te tais.` : `Je t'écoute… parle ${l}, puis touche le micro.`);
+  recTimer = setTimeout(()=>stopRec(true), 60000);
 }
 async function transcribe(blob){
   if(blob.size < 1500){ setStatus("Je n'ai rien entendu. Touche le micro et parle un peu plus longtemps."); return; }
@@ -279,13 +335,17 @@ async function transcribe(blob){
     await send(d.text);
   }catch(err){ lock(false); if(err.message!=="401"){ showError(err.message); setStatus("Touche le micro pour réessayer."); } }
 }
-$("mic").addEventListener("click", ()=>{ unlockAudio(); player.pause(); if(recorder && recorder.state==="recording") recorder.stop(); else if(!busy) startRec(); });
+$("mic").addEventListener("click", ()=>{ unlockAudio(); ensureCtx(); player.pause(); if(recorder) stopRec(true); else if(!busy) startRec(false); });
+
+function setHF(on){ handsFree=on; store.set("hiwar-hf", on?"1":"0"); $("hf").setAttribute("aria-pressed",String(on)); $("hf").textContent = "Mains libres : " + (on?"oui":"non"); if(!recorder && !busy) idleStatus(); }
+$("hf").onclick=()=>{ ensureCtx(); setHF(!handsFree); };
+setHF(handsFree);
 
 /* --- autres commandes --- */
-document.querySelectorAll("[data-say]").forEach(b=>b.addEventListener("click",()=>{ unlockAudio(); if(b.classList.contains("starter")) mode=b.dataset.mode||null; send(b.dataset.say); }));
-$("reset").onclick=()=>{ player.pause(); turns=[]; mode=null; $("msgs").replaceChildren(); started(false); setStatus("Touche le micro, parle, puis touche-le encore pour envoyer."); };
+document.querySelectorAll("[data-say]").forEach(b=>b.addEventListener("click",()=>{ unlockAudio(); ensureCtx(); stopRec(false); if(b.classList.contains("starter")) mode=b.dataset.mode||null; send(b.dataset.say); }));
+$("reset").onclick=()=>{ stopRec(false); player.pause(); turns=[]; mode=null; $("msgs").replaceChildren(); started(false); idleStatus(); };
 $("kbd").onclick=()=>{ const t=$("typer"); t.hidden=!t.hidden; if(!t.hidden) $("box").focus(); };
-$("typer").addEventListener("submit",(e)=>{ e.preventDefault(); unlockAudio(); const v=$("box").value; $("box").value=""; send(v); });
+$("typer").addEventListener("submit",(e)=>{ e.preventDefault(); unlockAudio(); ensureCtx(); stopRec(false); const v=$("box").value; $("box").value=""; send(v); });
 $("box").addEventListener("keydown",(e)=>{ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); $("typer").requestSubmit(); } });
 function setLang(l){ lang=l; $("langAr").setAttribute("aria-pressed",String(l==="ar")); $("langFr").setAttribute("aria-pressed",String(l==="fr")); }
 $("langAr").onclick=()=>setLang("ar"); $("langFr").onclick=()=>setLang("fr");
