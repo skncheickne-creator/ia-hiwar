@@ -46,6 +46,7 @@ button:disabled{opacity:.5;cursor:default}
 .msg.me{align-self:flex-end;background:var(--accent-soft);border-bottom-right-radius:4px}
 .msg .who{font-size:12px;color:var(--muted);display:block;margin-bottom:2px}
 .msg .body{font-family:var(--ar);font-size:21px;line-height:2;white-space:pre-wrap;unicode-bidi:plaintext;text-align:start;overflow-wrap:anywhere}
+.msg .fr{font-family:var(--ui);font-size:15px;line-height:1.5;color:var(--muted);margin-top:4px;white-space:pre-wrap;overflow-wrap:anywhere}
 .msg .tools{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
 .mini{background:none;border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:13px}
 .err{align-self:center;color:var(--danger);font-size:14px;text-align:center;max-width:90%}
@@ -129,7 +130,7 @@ button:disabled{opacity:.5;cursor:default}
     <div class="dock">
       <div class="quick" id="quick" hidden>
         <button type="button" class="chip" data-say="لَمْ أَفْهَمْ، أَعِدْ بِبُطْءٍ مِنْ فَضْلِكَ.">Je n'ai pas compris</button>
-        <button type="button" class="chip" data-say="Explique-moi ta dernière phrase en français, mot par mot.">Aide en français</button>
+        <button type="button" class="chip" data-say="سَاعِدْنِي مِنْ فَضْلِكَ، لَمْ أَعْرِفْ كَيْفَ أُجِيبُ.">Aide-moi</button>
         <button type="button" class="chip" data-say="أَعْطِنِي سُؤَالًا جَدِيدًا.">Nouvelle question</button>
       </div>
       <div class="status" id="status">Touche le micro, parle, puis touche-le encore pour envoyer.</div>
@@ -223,7 +224,10 @@ function play(url, slow){
 function addMsg(role, text){
   const m=el("div","msg "+(role==="assistant"?"ai":"me"));
   m.append(el("span","who", role==="assistant"?"Professeur":"Toi"));
-  const b=el("div","body",text); b.dir="auto"; m.append(b);
+  const isFr=(l)=>(l.match(/[A-Za-zÀ-ÿœŒ]/g)||[]).length > (l.match(/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/g)||[]).length;
+  const lines=text.split(/\n+/), ar=lines.filter(l=>!isFr(l)).join("\n"), fr=lines.filter(isFr).join("\n");
+  if(role!=="assistant" || !ar || !fr){ const b=el("div","body",text); b.dir="auto"; m.append(b); }
+  else { const b=el("div","body",ar); b.dir="auto"; const f=el("div","fr",fr); f.lang="fr"; m.append(b,f); }
   $("msgs").append(m); m.scrollIntoView({block:"end",behavior:"smooth"}); return m;
 }
 function started(on){ $("intro").hidden=on; $("quick").hidden=!on; $("reset").hidden=!on; }
