@@ -19,9 +19,26 @@ const texts = files.map((f) => {
   return { title, body };
 });
 
+// Mots que la reconnaissance vocale doit s'attendre à entendre : mots de la leçon + mots les plus présents dans les textes.
+const APP_WORDS = ["مراجعة", "مرادف", "مرادفات", "مضاد", "أضداد", "مصدر", "جمع", "مفرد", "فعل", "اسم", "حرف",
+  "ماض", "مضارع", "أمر", "سؤال", "أسئلة", "نص", "النصوص", "قصة", "كلمة", "كلمات", "معنى", "ترجمة", "جملة"];
+const plain = (w) => w.normalize("NFC")
+  .replace(/[\u064B-\u065F\u0670\u06D6-\u06ED\u0640]/g, "") // voyelles, signes coraniques, tatwil
+  .replace(/\u0671/g, "\u0627"); // alif wasla → alif
+const counts = new Map();
+for (const t of texts) {
+  for (const raw of t.body.match(/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]+/g) || []) {
+    const w = plain(raw).replace(/[^\u0621-\u064A]/g, "");
+    if (w.length >= 3) counts.set(w, (counts.get(w) || 0) + 1);
+  }
+}
+const textWords = [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([w]) => w);
+const VOCAB = [...new Set([...APP_WORDS, ...textWords])].slice(0, 150);
+
 writeFileSync(
   "lib/texts.js",
   "// Fichier généré automatiquement par scripts/build-texts.mjs — ne pas modifier à la main.\n" +
-    "export const TEXTS = " + JSON.stringify(texts, null, 2) + ";\n",
+    "export const TEXTS = " + JSON.stringify(texts, null, 2) + ";\n" +
+    "export const VOCAB = " + JSON.stringify(VOCAB) + ";\n",
 );
-console.log(`${texts.length} texte(s) chargé(s) : ${texts.map((t) => t.title).join(", ") || "aucun"}`);
+console.log(`${texts.length} texte(s) chargé(s) : ${texts.map((t) => t.title).join(", ") || "aucun"} — ${VOCAB.length} mots pour l'écoute`);

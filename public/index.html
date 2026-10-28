@@ -332,6 +332,8 @@ async function transcribe(blob){
   lock(true); setStatus("Je transcris ce que tu as dit…");
   const ext = blob.type.includes("mp4") ? "m4a" : blob.type.includes("ogg") ? "ogg" : "webm";
   const fd = new FormData(); fd.append("audio", blob, "voix."+ext); fd.append("language", lang);
+  const lastTeacher = [...turns].reverse().find(t=>t.role==="assistant");
+  if(lastTeacher) fd.append("context", lastTeacher.content.split(/\n+/).filter(l=>/[\u0600-\u06FF]/.test(l)).join(" ").slice(0,600));
   try{
     const d = await apiJson("/api/transcribe",{method:"POST",body:fd});
     lock(false);
