@@ -20,7 +20,7 @@ const texts = files.map((f) => {
 });
 
 // Mots que la reconnaissance vocale doit s'attendre à entendre : mots de la leçon + mots les plus présents dans les textes.
-const APP_WORDS = ["مراجعة", "مرادف", "مرادفات", "مضاد", "أضداد", "مصدر", "جمع", "مفرد", "فعل", "اسم", "حرف",
+const APP_WORDS = ["مراجعة", "مرادف", "مرادفات", "ضد", "مضاد", "أضداد", "جذر", "مصدر", "جمع", "مفرد", "فعل", "اسم", "حرف",
   "ماض", "مضارع", "أمر", "سؤال", "أسئلة", "نص", "النصوص", "قصة", "كلمة", "كلمات", "معنى", "ترجمة", "جملة"];
 const plain = (w) => w.normalize("NFC")
   .replace(/[\u064B-\u065F\u0670\u06D6-\u06ED\u0640]/g, "") // voyelles, signes coraniques, tatwil
@@ -32,8 +32,17 @@ for (const t of texts) {
     if (w.length >= 3) counts.set(w, (counts.get(w) || 0) + 1);
   }
 }
-const textWords = [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([w]) => w);
-const VOCAB = [...new Set([...APP_WORDS, ...textWords])].slice(0, 150);
+const arabicWords = (txt) => (txt.match(/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF]+/g) || [])
+  .map((raw) => plain(raw).replace(/[^\u0621-\u064A]/g, "")).filter((w) => w.length >= 3);
+// 1) Les mots-pivots et leurs synonymes, antonymes, dérivés (section « Mots-pivots » de chaque texte).
+const pivotWords = texts.flatMap((t) => {
+  const m = t.body.match(/^##[^\n]*Mots-pivots[^\n]*\n([\s\S]*?)(?=^##\s|$(?![\s\S]))/m);
+  return m ? arabicWords(m[1]) : [];
+});
+// 2) Les mots qui contiennent des lettres difficiles à reconnaître (ض ص ط ظ ع ح ق غ خ ذ ث).
+const byFreq = [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([w]) => w);
+const hard = byFreq.filter((w) => /[ضصطظعحقغخذث]/.test(w));
+const VOCAB = [...new Set([...APP_WORDS, ...pivotWords, ...hard, ...byFreq])].slice(0, 200);
 
 writeFileSync(
   "lib/texts.js",
