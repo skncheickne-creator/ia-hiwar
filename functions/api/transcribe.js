@@ -2,7 +2,9 @@
 import { checkCode, json } from "../../lib/auth.js";
 import { VOCAB } from "../../lib/texts.js";
 
-const BASE_PROMPT = "Élève débutant qui parle arabe classique, avec des mots du Coran et des textes étudiés.";
+const BASE_PROMPT =
+  "Élève débutant qui parle arabe classique, avec des mots du Coran et des textes étudiés. " +
+  "Distingue bien les lettres emphatiques : ض (ḍād) n'est ni د ni ب ; ظ n'est ni ذ ni ز ; ص n'est pas س ; ط n'est pas ت ; ق n'est pas ك ; ح n'est pas ه ; ع n'est pas أ.";
 
 // Appelle OpenAI. Le nouveau modèle (gpt-transcribe) reçoit les mots attendus en « keywords » ;
 // les anciens modèles les reçoivent dans le « prompt ».
